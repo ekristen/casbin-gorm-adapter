@@ -25,9 +25,7 @@ import (
 	"github.com/casbin/casbin/v2"
 	"github.com/casbin/casbin/v2/model"
 	"github.com/casbin/casbin/v2/persist"
-	"github.com/glebarez/sqlite"
-	"gorm.io/driver/mysql"
-	"gorm.io/driver/postgres"
+	"github.com/ekristen/gorm-libsql"
 	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -306,6 +304,8 @@ func openDBConnection(driverName, dataSourceName string) (*gorm.DB, error) {
 		db, err = gorm.Open(sqlserver.Open(dataSourceName), &gorm.Config{})
 	} else if driverName == "sqlite3" {
 		db, err = gorm.Open(sqlite.Open(dataSourceName), &gorm.Config{})
+	} else if driverName == "libsql" {
+		db, err = gorm.Open(libsql.Open(dataSourceName), &gorm.Config{})
 	} else {
 		return nil, errors.New("Database dialect '" + driverName + "' is not supported. Supported databases are postgres, mysql and sqlserver")
 	}
@@ -352,7 +352,7 @@ func (a *Adapter) Open() error {
 		}
 		if a.driverName == "postgres" {
 			db, err = openDBConnection(a.driverName, a.dataSourceName+" dbname="+a.databaseName)
-		} else if a.driverName == "sqlite3" {
+		} else if a.driverName == "sqlite3" || a.driverName == "libsql" {
 			db, err = openDBConnection(a.driverName, a.dataSourceName)
 		} else if a.driverName == "sqlserver" {
 			db, err = openDBConnection(a.driverName, a.dataSourceName+"?database="+a.databaseName)
@@ -440,6 +440,8 @@ func (a *Adapter) truncateTable() error {
 	case sqlite.DriverName:
 		sql = fmt.Sprintf("delete from %s", a.getFullTableName())
 	case "sqlite3":
+		sql = fmt.Sprintf("delete from %s", a.getFullTableName())
+	case "libsql":
 		sql = fmt.Sprintf("delete from %s", a.getFullTableName())
 	case "postgres":
 		sql = fmt.Sprintf("truncate table %s RESTART IDENTITY", a.getFullTableName())
